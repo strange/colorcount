@@ -1,0 +1,123 @@
+#!/usr/bin/env python
+import collections
+import colorsys
+import math
+import os
+import re
+import sys
+
+def rgb_to_hsv(rgb):
+    """Convert RGB-triplet to HSV-triplet."""
+    rgbd = tuple(map(lambda x: round(x / 255., 4), rgb))
+    return colorsys.rgb_to_hsv(*rgbd)
+
+def rgb_to_hex(rgb):
+    """Return hexadecimal representation of RGB-triplet."""
+    return ('%02x%02x%02x' % rgb).upper()
+
+def hex_to_hsv(h):
+    """Convert hexadecimal to HSV-triplet."""
+    return rgb_to_hsv(hex_to_rgb(h))
+
+def hex_to_rgb(s):
+    """Convert hexadecimal to RGB-triplet."""
+    v = int(s, 16)
+    return (v >> 16, (v >> 8) & 0b11111111, v & 0b11111111)
+
+def hsv_to_hex(hsv):
+    """Return hexadecimal representation of HSV-triplet."""
+    rgbd = colorsys.hsv_to_rgb(*hsv)
+    # colorsys uses decimals; we convert to "bytes"
+    rgb = tuple(map(lambda v: int(round(v * 255.0)), rgbd))
+    return rgb_to_hex(rgb)
+
+def clean_hex(h):
+    """Return a version of `h` that is six characters in length and does
+    not include a #-prefix.
+    
+    """
+    if h.startswith('#'):
+        h = h[1:]
+
+    if len(h) == 3:
+        h = ''.join([2 * d for d in h])
+
+    return h.upper()
+
+def rotate_value(hsv, value=.5):
+    """Rotate the value-decimal of `hsv` by `value`."""
+    # HSL might be a better fit for this...
+    (h, s, v) = hsv
+    return (h, s, math.fmod(v + value, 1.))
+
+color_re = re.compile('#[a-fA-F0-9]{3,6}')
+def fetch_colors(filename):
+    """Return a list containing all (hex) colors found in a text file."""
+    with open(filename, 'r') as f:
+        colors = map(clean_hex, color_re.findall(f.read()))
+    return colors
+
+def color_tuples(colors):
+    """Convert a list of colors into a list of tuples in the following format:
+
+        (hex, hsv, hex adjusted for printing on hex, occurrences)
+
+    """
+    colors_with_count = collections.defaultdict(int)
+    for color in colors:
+        colors_with_count[color] += 1
+    return [(k, hex_to_hsv(k), hsv_to_hex(rotate_value(hex_to_hsv(k))), v) \
+            for k, v in colors_with_count.items()]
+
+def sorted_color_tuples(color_tuples):
+    """Return a list of color tuples (see `color_tuples()`) sorted by hue,
+    saturation and value.
+    
+    """
+    # this is not perfect, but i couldn't come up with something nice to sort
+    # and fold a 3d space into something pretty.
+    return sorted(color_tuples, key=lambda ct: ct[1])
+
+def colors(filename):
+    return sorted_color_tuples(color_tuples(fetch_colors(filename)))
+
+HTML_TEMPLATE = """
+<!doctype html>
+<meta charset="utf-8">
+<html lang="zxx">
+<head>
+<title>magic!</title>
+<style>
+body { font-family: monospace; padding: 20px; }
+.color span { display: inline-block; padding: 5px 10px; }
+.color .count { width: 30px; text-align: right; }
+.color .value { width: 100px; text-align: center;}
+</style>
+</head>
+<body>
+%s
+"""
+def html_output(color_tuples):
+    """Print a neat HTML-version of `color_tuples` to stdout."""
+    t = ('<div class="color">'
+         '    <span class="count">%(count)s</span>'
+         '    <span class="value" style="background: #%(h)s; color: #%(p)s">'
+         '        #%(h)s'
+         '    </span>'
+         '</div>')
+    lines = []
+    for (h, _hsv, print_color, count) in color_tuples:
+        lines.append(t % dict(h=h, p=print_color, count=count))
+    print HTML_TEMPLATE % '\n'.join(lines)
+
+if __name__ == '__main__':
+    if not len(sys.argv) == 2:
+        sys.stderr.write("usage: %s <filename>\n" % sys.argv[0])
+        sys.exit(1)
+
+    path = sys.argv[1]
+    if not os.path.exists(path):
+        sys.stderr.write("error: file does not exist!\n")
+        sys.exit(1)
+
+    html_output(colors(path))
