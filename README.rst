@@ -9,5 +9,4 @@ Usage
 
 Create a neat HTML-document containing a list of all colors found::
 
-    colorcount static/style/master.css > test.html && \
-        open -a Firefox test.html
+    colorcount static/style/master.css > out.html && open out.html
