@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import collections
 import colorsys
+import errno
+import fileinput
 import math
 import os
 import re
@@ -51,11 +53,9 @@ def rotate_value(hsv, value=.5):
     return (h, s, math.fmod(v + value, 1.))
 
 color_re = re.compile('#[a-fA-F0-9]{3,6}')
-def fetch_colors(filename):
-    """Return a list containing all (hex) colors found in a text file."""
-    with open(filename, 'r') as f:
-        colors = map(clean_hex, color_re.findall(f.read()))
-    return colors
+def find_colors(haystack):
+    """Return a list containing all (hex) colors found in `haystack`."""
+    return map(clean_hex, color_re.findall(haystack))
 
 def color_tuples(colors):
     """Convert a list of colors into a list of tuples in the following format:
@@ -77,9 +77,6 @@ def sorted_color_tuples(color_tuples):
     # this is not perfect, but i couldn't come up with something nice to sort
     # and fold a 3d space into something pretty.
     return sorted(color_tuples, key=lambda ct: ct[1])
-
-def colors(filename):
-    return sorted_color_tuples(color_tuples(fetch_colors(filename)))
 
 HTML_TEMPLATE = """
 <!doctype html>
@@ -111,13 +108,11 @@ def html_output(color_tuples):
     print HTML_TEMPLATE % '\n'.join(lines)
 
 if __name__ == '__main__':
-    if not len(sys.argv) == 2:
-        sys.stderr.write("usage: %s <filename>\n" % sys.argv[0])
+    try:
+        haystack = '\n'.join(fileinput.input())
+    except IOError, e:
+        sys.stderr.write('error: %s\n' % e.strerror)
         sys.exit(1)
 
-    path = sys.argv[1]
-    if not os.path.exists(path):
-        sys.stderr.write("error: file does not exist!\n")
-        sys.exit(1)
-
-    html_output(colors(path))
+    colors = sorted_color_tuples(color_tuples(find_colors(haystack)))
+    html_output(colors)
