@@ -54,29 +54,21 @@ def rotate_value(hsv, value=.5):
 
 color_re = re.compile('#[a-fA-F0-9]{3,6}')
 def find_colors(haystack):
-    """Return a list containing all (hex) colors found in `haystack`."""
-    return map(clean_hex, color_re.findall(haystack))
-
-def color_tuples(colors):
-    """Convert a list of colors into a list of tuples in the following format:
-
-        (hex, hsv, hex adjusted for printing on hex, occurrences)
-
-    """
-    colors_with_count = collections.defaultdict(int)
-    for color in colors:
-        colors_with_count[color] += 1
-    return [(k, hex_to_hsv(k), hsv_to_hex(rotate_value(hex_to_hsv(k))), v) \
-            for k, v in colors_with_count.items()]
-
-def sorted_color_tuples(color_tuples):
-    """Return a list of color tuples (see `color_tuples()`) sorted by hue,
-    saturation and value.
+    """Scan `haystack` for (hexadecimal) color values and return a list of
+    tuples (color, occurrences).
     
     """
-    # this is not perfect, but i couldn't come up with something nice to sort
-    # and fold a 3d space into something pretty.
-    return sorted(color_tuples, key=lambda ct: ct[1])
+    colors = collections.defaultdict(int)
+    for color in color_re.findall(haystack):
+        colors[clean_hex(color)] += 1
+    return colors.items()
+
+def sorted_colors(colors):
+    """Sort `colors` (see `find_colors()`) by hue, saturation and value."""
+    # this is not perfect. i couldn't come up with anything nice that would
+    # allow me to sort the colors and then fold the 3D space into something
+    # suitable for simple output.
+    return sorted(colors, key=lambda ct: hex_to_hsv(ct[0]))
 
 HTML_TEMPLATE = """
 <!doctype html>
@@ -95,18 +87,22 @@ h1 { margin-bottom: 1.2em; }
 <body>
 %s
 """
-def html_output(color_tuples):
-    """Print a neat HTML-version of `color_tuples` to stdout."""
+def html_output(colors):
+    """Print a neat HTML-version of `colors` to stdout."""
     t = ('<div class="color">'
-         '<span class="count">%(count)s</span>'
-         '<span class="value" style="background: #%(h)s; color: #%(p)s">'
-         '#%(h)s'
+         '<span class="count">%(occurrences)s</span>'
+         '<span class="value" style="background: #%(c)s; color: #%(p)s">'
+         '#%(c)s'
          '</span>'
          '</div>')
     lines = []
-    lines.append('<h1>%s color(s) found</h1>' % len(color_tuples))
-    for (h, _hsv, print_color, count) in color_tuples:
-        lines.append(t % dict(h=h, p=print_color, count=count))
+    lines.append('<h1>%s color(s) found</h1>' % len(colors))
+    for color, occurrences in colors:
+        lines.append(t % {
+            'c': color,
+            'p': hsv_to_hex(rotate_value(hex_to_hsv(color))),
+            'occurrences': occurrences,
+        })
     print HTML_TEMPLATE % '\n'.join(lines)
 
 if __name__ == '__main__':
@@ -116,5 +112,5 @@ if __name__ == '__main__':
         sys.stderr.write('error: %s\n' % e.strerror)
         sys.exit(1)
 
-    colors = sorted_color_tuples(color_tuples(find_colors(haystack)))
+    colors = sorted_colors(find_colors(haystack))
     html_output(colors)
