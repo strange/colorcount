@@ -86,6 +86,7 @@ HTML_TEMPLATE = """
 <title>magic!</title>
 <style>
 body { font-family: monospace; padding: 20px; }
+h1 { margin-bottom: 1.2em; }
 .color span { display: inline-block; padding: 5px 10px; }
 .color .count { width: 30px; text-align: right; }
 .color .value { width: 100px; text-align: center;}
@@ -97,12 +98,13 @@ body { font-family: monospace; padding: 20px; }
 def html_output(color_tuples):
     """Print a neat HTML-version of `color_tuples` to stdout."""
     t = ('<div class="color">'
-         '    <span class="count">%(count)s</span>'
-         '    <span class="value" style="background: #%(h)s; color: #%(p)s">'
-         '        #%(h)s'
-         '    </span>'
+         '<span class="count">%(count)s</span>'
+         '<span class="value" style="background: #%(h)s; color: #%(p)s">'
+         '#%(h)s'
+         '</span>'
          '</div>')
     lines = []
+    lines.append('<h1>%s color(s) found</h1>' % len(color_tuples))
     for (h, _hsv, print_color, count) in color_tuples:
         lines.append(t % dict(h=h, p=print_color, count=count))
     print HTML_TEMPLATE % '\n'.join(lines)
