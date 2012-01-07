@@ -10,7 +10,7 @@ import sys
 
 def rgb_to_hsv(rgb):
     """Convert RGB-triplet to HSV-triplet."""
-    rgbd = tuple(map(lambda x: round(x / 255., 4), rgb))
+    rgbd = tuple([round(b, / 255., 4) for b in rgb])
     return colorsys.rgb_to_hsv(*rgbd)
 
 def rgb_to_hex(rgb):
@@ -30,7 +30,7 @@ def hsv_to_hex(hsv):
     """Return hexadecimal representation of HSV-triplet."""
     rgbd = colorsys.hsv_to_rgb(*hsv)
     # colorsys uses decimals; we convert to "bytes"
-    rgb = tuple(map(lambda v: int(round(v * 255.0)), rgbd))
+    rgb = tuple([int(round(b, * 255.)) for b in rgbd])
     return rgb_to_hex(rgb)
 
 def clean_hex(h):
