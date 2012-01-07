@@ -34,8 +34,8 @@ def hsv_to_hex(hsv):
     return rgb_to_hex(rgb)
 
 def clean_hex(h):
-    """Return a version of `h` that is six characters in length and does
-    not include a #-prefix.
+    """Return a version of `h` that is six characters in length; does not
+    include a #-prefix; and is uppercase.
     
     """
     if h.startswith('#'):
